@@ -25,6 +25,9 @@ func (api *API) Health(w http.ResponseWriter, r *http.Request) {
 
 	// Check db conn
 	dbStatus := "connected"
+	if err := api.Store.Ping(); err != nil {
+		dbStatus = "unavailable"
+	}
 
 	resp := HealthResponse{
 		Status:    "ok",
