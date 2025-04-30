@@ -51,5 +51,10 @@ should see listen_addresses and port. Comment out their given
 listen_addresses and port (add # in front) and on newlines for each value,
 enter your desired listen_addresses and port. 
 
-8. Update your .env file to reflect these changes
+8. Restart PostgreSQL
+```bash
+sudo systemctl restart postgresql
+```
+
+9. Update your .env file to reflect these changes
 DB_NAME, DB_USER, DB_PASSWORD will changed based on what you entered 
