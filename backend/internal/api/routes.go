@@ -17,10 +17,10 @@ func NewRouter() http.Handler {
 	router.Use(middleware.CORS)
 	router.Use(middleware.SecurityHeaders)
 	router.Use(middleware.Timeout(10 * time.Second))
-	router.Use(middleware.Authenticate)
+	//router.Use(middleware.Authenticate)
 
 	// get health endpoint
-	router.Get("/api/v1/health", Health_Handler)
+	router.Get("/api/v1/health", Health)
 
 	return router
 }

@@ -64,6 +64,13 @@ func getEnv(key string, defaultFallback string) string {
 	return defaultFallback
 }
 
+func (store *Store) Ping() error {
+	if err := store.db.Ping(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (store *Store) Close() error {
 	return store.db.Close()
 }
