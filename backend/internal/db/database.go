@@ -11,7 +11,8 @@ import (
 )
 
 type Store struct {
-	DB *sql.DB
+	db    *sql.DB
+	Users *UserStore
 }
 
 func NewStore() (*Store, error) {
@@ -41,7 +42,10 @@ func NewStore() (*Store, error) {
 		return nil, fmt.Errorf("ERROR: Failed to ping to connected database: %w", err)
 	}
 
-	store := &Store{DB: db}
+	store := &Store{
+		db:    db,
+		Users: NewUserStore(db),
+	}
 
 	log.Println("Connected to PostgreSQL.")
 
@@ -61,11 +65,11 @@ func getEnv(key string, defaultFallback string) string {
 }
 
 func (store *Store) Close() error {
-	return store.DB.Close()
+	return store.db.Close()
 }
 
 func (store *Store) createTables() error {
-	// SQL Query statments
+	// SQL Query statements
 	createUserTableSQL := `
 		CREATE TABLE IF NOT EXISTS users (
 			id UUID PRIMARY KEY,
@@ -78,7 +82,7 @@ func (store *Store) createTables() error {
 		);
 	`
 
-	_, err := store.DB.Exec(createUserTableSQL)
+	_, err := store.db.Exec(createUserTableSQL)
 	if err != nil {
 		return err
 	}
