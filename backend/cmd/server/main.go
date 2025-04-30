@@ -29,7 +29,7 @@ func main() {
 		port = "8080"
 	}
 
-	router := api.NewRouter()
+	router := api.NewRouter(store)
 
 	// Start server
 	log.Printf("Mana server on port %s...\n", port)

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"mana/internal/db"
 	"mana/internal/middleware"
 	"net/http"
 	"time"
@@ -8,8 +9,9 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func NewRouter() http.Handler {
+func NewRouter(store *db.Store) http.Handler {
 	router := chi.NewRouter()
+	api := &API{Store: store}
 
 	// Middleware
 	router.Use(middleware.Recover)
@@ -20,7 +22,7 @@ func NewRouter() http.Handler {
 	//router.Use(middleware.Authenticate)
 
 	// get health endpoint
-	router.Get("/api/v1/health", Health)
+	router.Get("/api/v1/health", api.Health)
 
 	return router
 }

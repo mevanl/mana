@@ -20,7 +20,7 @@ type HealthResponse struct {
 	Env       string `json:"env"`
 }
 
-func Health(w http.ResponseWriter, r *http.Request) {
+func (api *API) Health(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	// Check db conn
