@@ -39,10 +39,11 @@ GRANT ALL PRIVILEGES ON SCHEMA public TO mason;
 cd /etc/postgresql
 ls
 ```
-You should see a directory in there, a number
+You should see a directory in there, a number (its the version number)
 for example if it was 17:
 ```bash
 cd 17
+cd mana
 ```
 Inside of this directory you will find a postgresql.conf file.
 Scroll to the comment saying connection settings and you will you 
