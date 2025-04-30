@@ -12,7 +12,7 @@ type User struct {
 	Email          string    `json:"email"`                     // unique
 	Password       string    `json:"-"`                         // hashed, not over API
 	ActivityStatus string    `json:"activity_status,omitempty"` // "online", "offline", "away", etc.
-	AccountStatus  string    `json:"account_status,omitempty"`  // "active", "suspended", "banned", "ip-banned"
+	AccountStatus  string    `json:"account_status,omitempty"`  // "active", "suspended", "banned"
 	CreatedAt      time.Time `json:"created_at"`                // ISO timestamp
 }
 
