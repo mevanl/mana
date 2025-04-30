@@ -1,0 +1,13 @@
+/* This file is used for general styling of elements for all of mana */
+
+:root {
+    --background-color: rgb(48, 50, 61);
+    --text-color: rgb(247, 240, 245);
+}
+
+
+.button {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    text-align: center;
+}
