@@ -22,7 +22,7 @@ func NewStore() (*Store, error) {
 		getEnv("DB_PORT", "5432"),
 		getEnv("DB_USER", "postgres"),
 		getEnv("DB_PASSWORD", "password"),
-		getEnv("DB_NAME", "mana"),
+		getEnv("DB_NAME", "mana_db"),
 	)
 
 	var err error

@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"mana/internal/api"
+	"mana/internal/db"
 	"net/http"
 	"os"
 
@@ -15,6 +16,13 @@ func main() {
 	if err != nil {
 		log.Fatal("ERROR: Failed loading .env file.")
 	}
+
+	// start store
+	store, err := db.NewStore()
+	if err != nil {
+		log.Fatalf("ERROR: Failed to create Store: %v", err)
+	}
+	defer store.Close()
 
 	port := os.Getenv("PORT")
 	if port == "" {
