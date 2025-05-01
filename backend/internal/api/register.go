@@ -51,11 +51,11 @@ func (api *API) Register(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	// Check store existance for email and username
-	if exists, _ := api.Store.Users.CheckUserExistsByEmail(req.Email); exists {
+	if exists, _ := api.Store.Users.CheckUserExistsByEmail(ctx, req.Email); exists {
 		http.Error(w, "Email already registered", http.StatusConflict)
 	}
 
-	if exists, _ := api.Store.Users.CheckUserExistsByUsername(req.Username); exists {
+	if exists, _ := api.Store.Users.CheckUserExistsByUsername(ctx, req.Username); exists {
 		http.Error(w, "Username already taken", http.StatusConflict)
 	}
 
