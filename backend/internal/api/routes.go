@@ -23,6 +23,7 @@ func NewRouter(store *db.Store) http.Handler {
 
 	router.Get("/api/v1/health", api.Health)
 	router.Post("/api/v1/register", api.Register)
+	router.Post("/api/v1/login", api.Login)
 
 	return router
 }
