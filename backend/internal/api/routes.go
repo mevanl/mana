@@ -21,8 +21,8 @@ func NewRouter(store *db.Store) http.Handler {
 	router.Use(middleware.Timeout(10 * time.Second))
 	//router.Use(middleware.Authenticate)
 
-	// get health endpoint
 	router.Get("/api/v1/health", api.Health)
+	router.Post("/api/v1/register", api.Register)
 
 	return router
 }

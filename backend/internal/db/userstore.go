@@ -119,6 +119,28 @@ func (userStore *UserStore) GetUserByID(ctx context.Context, ID uuid.UUID) (*mod
 	return &user, err
 }
 
+func (userStore *UserStore) CheckUserExistsByEmail(email string) (bool, error) {
+	selectUserEmailSQL := `SELECT EXISTS (SELECT 1 FROM users WHERE email = $1)`
+
+	row := userStore.DB.QueryRow(selectUserEmailSQL, email)
+
+	var exists bool
+	err := row.Scan(&exists)
+
+	return exists, err
+}
+
+func (userStore *UserStore) CheckUserExistsByUsername(username string) (bool, error) {
+	selectUserUsernameSQL := `SELECT EXISTS (SELECT 1 FROM users WHERE username = $1)`
+
+	row := userStore.DB.QueryRow(selectUserUsernameSQL, username)
+
+	var exists bool
+	err := row.Scan(&exists)
+
+	return exists, err
+}
+
 func (userStore *UserStore) UpdateActivityStatus(ctx context.Context, id uuid.UUID, status string) error {
 	updateActivityStatusSQL := `UPDATE users SET activity_status = $1 WHERE id = $2`
 
