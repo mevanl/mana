@@ -119,10 +119,10 @@ func (userStore *UserStore) GetUserByID(ctx context.Context, ID uuid.UUID) (*mod
 	return &user, err
 }
 
-func (userStore *UserStore) CheckUserExistsByEmail(email string) (bool, error) {
+func (userStore *UserStore) CheckUserExistsByEmail(ctx context.Context, email string) (bool, error) {
 	selectUserEmailSQL := `SELECT EXISTS (SELECT 1 FROM users WHERE email = $1)`
 
-	row := userStore.DB.QueryRow(selectUserEmailSQL, email)
+	row := userStore.DB.QueryRowContext(ctx, selectUserEmailSQL, email)
 
 	var exists bool
 	err := row.Scan(&exists)
@@ -130,10 +130,10 @@ func (userStore *UserStore) CheckUserExistsByEmail(email string) (bool, error) {
 	return exists, err
 }
 
-func (userStore *UserStore) CheckUserExistsByUsername(username string) (bool, error) {
+func (userStore *UserStore) CheckUserExistsByUsername(ctx context.Context, username string) (bool, error) {
 	selectUserUsernameSQL := `SELECT EXISTS (SELECT 1 FROM users WHERE username = $1)`
 
-	row := userStore.DB.QueryRow(selectUserUsernameSQL, username)
+	row := userStore.DB.QueryRowContext(ctx, selectUserUsernameSQL, username)
 
 	var exists bool
 	err := row.Scan(&exists)
