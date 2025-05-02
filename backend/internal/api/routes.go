@@ -19,7 +19,7 @@ func NewRouter(store *db.Store) http.Handler {
 	router.Use(middleware.CORS)
 	router.Use(middleware.SecurityHeaders)
 	router.Use(middleware.Timeout(10 * time.Second))
-	//router.Use(middleware.Authenticate)
+	router.Use(middleware.Authenticate)
 
 	router.Get("/api/v1/health", api.Health)
 	router.Post("/api/v1/register", api.Register)

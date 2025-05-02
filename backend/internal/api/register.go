@@ -18,7 +18,7 @@ type RegisterRequest struct {
 
 var usernameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]{5,32}$`)
 var passwordRegex = regexp.MustCompile(`^[A-Za-z0-9?.=*!]{8,64}$`)
-var emailRegex = regexp.MustCompile(`^[a-z0-9!#$%&'*+/=?^_` + "`" + `{|}~.-]+@[a-z0-9.-]+\.[a-z]{2,}$`)
+var emailRegex = regexp.MustCompile(`^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$`)
 
 func (api *API) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
@@ -31,20 +31,23 @@ func (api *API) Register(w http.ResponseWriter, r *http.Request) {
 
 	// clean whitespace
 	req.Username = strings.TrimSpace(req.Username)
-	req.Email = strings.TrimSpace(req.Password)
+	req.Email = strings.TrimSpace(req.Email)
 	req.Password = strings.TrimSpace(req.Password)
 
 	// validation
 	if !usernameRegex.MatchString(req.Username) {
 		http.Error(w, "Invalid username. Must be: 5-32 characters, alphanumeric or underscore only", http.StatusBadRequest)
+		return
 	}
 
 	if !emailRegex.MatchString(req.Email) {
 		http.Error(w, "Invalid email format.", http.StatusBadRequest)
+		return
 	}
 
 	if !checkValidPassword(req.Password) {
 		http.Error(w, "Password must be 8-64 characters, including: 1 uppercase, 1 lowercase, 1 digit.", http.StatusBadRequest)
+		return
 	}
 
 	// Get request context
@@ -53,16 +56,19 @@ func (api *API) Register(w http.ResponseWriter, r *http.Request) {
 	// Check store existance for email and username
 	if exists, _ := api.Store.Users.CheckUserExistsByEmail(ctx, req.Email); exists {
 		http.Error(w, "Email already registered", http.StatusConflict)
+		return
 	}
 
 	if exists, _ := api.Store.Users.CheckUserExistsByUsername(ctx, req.Username); exists {
 		http.Error(w, "Username already taken", http.StatusConflict)
+		return
 	}
 
 	// hash the password
 	hashedPassword, err := auth.HashPassword(req.Password)
 	if err != nil {
 		http.Error(w, "Internal error hashing password", http.StatusInternalServerError)
+		return
 	}
 
 	// Make user and insert into db
