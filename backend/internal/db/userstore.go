@@ -96,7 +96,7 @@ func (userStore *UserStore) GetUserByID(ctx context.Context, ID uuid.UUID) (*mod
 	selectUserSQL := `
 		SELECT id, username, email, password, activity_status, account_status, created_at
 		FROM users
-		WHERE ID = $1
+		WHERE id = $1
 	`
 
 	userRow := userStore.DB.QueryRowContext(ctx, selectUserSQL, ID)
