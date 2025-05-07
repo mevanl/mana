@@ -9,11 +9,11 @@ import (
 const MaxChannels uint8 = 255
 const MaxRoles uint8 = 255 // 0 - 254 are free, 255 is default/'everyone' role
 
-type ChannelType int
+type ChannelType string
 
 const (
-	TextChannel ChannelType = iota
-	VoiceChannel
+	ChannelTypeText  ChannelType = "text"
+	ChannelTypeVoice ChannelType = "voice"
 )
 
 type Guild struct {
@@ -52,6 +52,8 @@ type GuildChannel struct {
 	Type      ChannelType `json:"type"`
 	Position  uint8       `json:"position"`
 	Topic     string      `json:"topic,omitempty"`
+	Bitrate   *int        `json:"bitrate,omitempty"`
+	UserLimit *int        `json:"user_limit,omitempty"`
 	CreatedAt time.Time   `json:"created_at"`
 }
 
@@ -121,7 +123,7 @@ func NewGuildMemberRole(guildID uuid.UUID, userID uuid.UUID, roleID uuid.UUID) *
 	}
 }
 
-func NewGuildChannel(guildID uuid.UUID, name string, channelType ChannelType, position uint8, topic string) *GuildChannel {
+func NewGuildChannel(guildID uuid.UUID, name string, channelType ChannelType, position uint8, topic string, bitrate *int, userLimit *int) *GuildChannel {
 	return &GuildChannel{
 		ID:        uuid.New(),
 		GuildID:   guildID,
@@ -129,6 +131,8 @@ func NewGuildChannel(guildID uuid.UUID, name string, channelType ChannelType, po
 		Type:      channelType,
 		Position:  position,
 		Topic:     topic,
+		Bitrate:   bitrate,
+		UserLimit: userLimit,
 		CreatedAt: time.Now().UTC(),
 	}
 }
@@ -138,7 +142,7 @@ func CreateGuild(name string, ownerID uuid.UUID) *GuildCreateResult {
 	everyoneRole := newEveryoneRole(guild.ID)
 	ownerRole := NewGuildRole(guild.ID, "Owner", 0, 0xFFFFFFFFFFFFFFFF, "#000000")
 	member := NewGuildMember(guild.ID, ownerID)
-	generalChannel := NewGuildChannel(guild.ID, "general", TextChannel, 0, "General channel")
+	generalChannel := NewGuildChannel(guild.ID, "general", ChannelTypeText, 0, "General channel", nil, nil)
 	memberRole := NewGuildMemberRole(guild.ID, ownerID, ownerRole.ID)
 
 	return &GuildCreateResult{
