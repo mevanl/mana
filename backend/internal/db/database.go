@@ -88,12 +88,115 @@ func (store *Store) createTables() error {
 			created_at TIMESTAMPTZ NOT NULL
 		);
 	`
+	createGuildsTableSQL := `
+		CREATE TABLE guilds (
+		id UUID PRIMARY KEY,
+		name TEXT NOT NULL,
+		owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+	);
+	`
+	createGuildMembersTableSQL := `
+		CREATE TABLE guild_members (
+		guild_id UUID NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+		user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+		joined_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+		PRIMARY KEY (guild_id, user_id)
+	);
+	`
 
-	_, err := store.db.Exec(createUserTableSQL)
+	createGuildRolesTableSQL := `
+		CREATE TABLE guild_roles (
+		id UUID PRIMARY KEY,
+		guild_id UUID NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+		name TEXT NOT NULL,
+		position SMALLINT NOT NULL CHECK (position BETWEEN 0 AND 255),
+		permissions BIGINT NOT NULL,
+		color TEXT NOT NULL,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+	);
+	`
+
+	createGuildMemberRolesTableSQL := `
+		CREATE TABLE guild_member_roles (
+		guild_id UUID NOT NULL,
+		user_id UUID NOT NULL,
+		role_id UUID NOT NULL REFERENCES guild_roles(id) ON DELETE CASCADE,
+		PRIMARY KEY (guild_id, user_id, role_id),
+		FOREIGN KEY (guild_id, user_id) REFERENCES guild_members(guild_id, user_id) ON DELETE CASCADE
+	);
+	`
+
+	createGuildChannelsTableSQL := `
+		CREATE TABLE guild_channels (
+		id UUID PRIMARY KEY,
+		guild_id UUID NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
+		name TEXT NOT NULL,
+		type SMALLINT NOT NULL CHECK (type IN (0, 1)), -- 0 = text, 1 = voice
+		position SMALLINT NOT NULL CHECK (position BETWEEN 0 AND 255),
+		topic TEXT,
+		created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+	);
+	`
+
+	createGuildChannelPermissionOverridesTableSQL := `
+		CREATE TABLE channel_permission_overrides (
+		channel_id UUID NOT NULL REFERENCES guild_channels(id) ON DELETE CASCADE,
+		user_id UUID,
+		role_id UUID,
+		allow BIGINT NOT NULL,
+		deny BIGINT NOT NULL,
+		CHECK (
+			(user_id IS NOT NULL AND role_id IS NULL) OR
+			(user_id IS NULL AND role_id IS NOT NULL)
+		),
+		PRIMARY KEY (channel_id, COALESCE(user_id, role_id))
+	);
+	`
+
+	var err error
+
+	_, err = store.db.Exec(createUserTableSQL)
 	if err != nil {
 		return err
 	}
 	log.Println("Users table ready.")
+
+	_, err = store.db.Exec(createGuildsTableSQL)
+	if err != nil {
+		return err
+	}
+	log.Println("Guilds table ready.")
+
+	_, err = store.db.Exec(createGuildMembersTableSQL)
+	if err != nil {
+		return err
+	}
+	log.Println("Guild members table ready.")
+
+	_, err = store.db.Exec(createGuildRolesTableSQL)
+	if err != nil {
+		return err
+	}
+	log.Println("Guild roles table ready.")
+
+	_, err = store.db.Exec(createGuildMemberRolesTableSQL)
+	if err != nil {
+		return err
+	}
+	log.Println("Guild member roles table ready.")
+
+	_, err = store.db.Exec(createGuildChannelsTableSQL)
+	if err != nil {
+		return err
+	}
+	log.Println("Guild channels table ready.")
+
+	_, err = store.db.Exec(createGuildChannelPermissionOverridesTableSQL)
+	if err != nil {
+		return err
+	}
+	log.Println("Guild channel permission overrides table ready.")
 
 	log.Println("All tables ready.")
 	return nil
