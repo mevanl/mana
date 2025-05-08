@@ -64,3 +64,7 @@ func (guildChannelOverrideStore *GuildChannelOverrideStore) GetOverridesForChann
 	}
 	return overrides, rows.Err()
 }
+
+func (guildChannelOverrideStore *GuildChannelOverrideStore) GetChannelOverrides(ctx context.Context, channelID uuid.UUID) ([]*models.GuildChannelPermissionOverride, error) {
+	return guildChannelOverrideStore.GetOverridesForChannel(ctx, channelID)
+}

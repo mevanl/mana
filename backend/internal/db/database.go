@@ -11,8 +11,12 @@ import (
 )
 
 type Store struct {
-	db    *sql.DB
-	Users *UserStore
+	db                    *sql.DB
+	Users                 *UserStore
+	Guilds                *GuildStore
+	GuildRoles            *GuildRoleStore
+	GuildChannels         *GuildChannelStore
+	GuildChannelOverrides *GuildChannelOverrideStore
 }
 
 func NewStore() (*Store, error) {
@@ -43,8 +47,12 @@ func NewStore() (*Store, error) {
 	}
 
 	store := &Store{
-		db:    db,
-		Users: NewUserStore(db),
+		db:                    db,
+		Users:                 NewUserStore(db),
+		Guilds:                NewGuildStore(db),
+		GuildRoles:            NewGuildRoleStore(db),
+		GuildChannels:         NewGuildChannelStore(db),
+		GuildChannelOverrides: NewGuildChannelOverrideStore(db),
 	}
 
 	log.Println("Connected to PostgreSQL.")
