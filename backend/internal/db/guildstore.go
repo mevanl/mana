@@ -125,7 +125,7 @@ func (guildStore *GuildStore) GetGuildMembers(ctx context.Context, guildID uuid.
 	return members, rows.Err()
 }
 
-func (guildStore *GuildStore) GetGuildsForUser(ctx context.Context, userID uuid.UUID) ([]*models.Guild, error) {
+func (guildStore *GuildStore) GetGuildsForUserID(ctx context.Context, userID uuid.UUID) ([]*models.Guild, error) {
 	getUserGuildsSQL := `
 		SELECT g.id, g.name, g.owner_id, g.created_at
 		FROM guilds g

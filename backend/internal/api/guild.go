@@ -2,10 +2,12 @@ package api
 
 import (
 	"encoding/json"
+	"mana/internal/middleware"
 	"mana/internal/models"
 	"net/http"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 )
 
@@ -32,7 +34,7 @@ func (api *API) CreateGuild(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	userID := ctx.Value("userID").(uuid.UUID)
+	userID := ctx.Value(middleware.UserIDKey).(uuid.UUID)
 
 	// Create guild and owner membership
 	guild := models.NewGuild(req.Name, userID)
@@ -53,6 +55,86 @@ func (api *API) CreateGuild(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-func GetGuildByID(w http.ResponseWriter, r *http.Request) {
+func (api *API) GetGuildByID(w http.ResponseWriter, r *http.Request) {
+	// grab that id
+	guildIDStr := chi.URLParam(r, "id")
+	if guildIDStr == "" {
+		http.Error(w, "Missing guild id", http.StatusBadRequest)
+		return
+	}
+
+	// convert str -> uuid
+	guildID, err := uuid.Parse(strings.TrimSpace(guildIDStr))
+	if err != nil {
+		http.Error(w, "Invalid guild id", http.StatusBadRequest)
+		return
+	}
+
+	// find that guild
+	ctx := r.Context()
+	guild, err := api.Store.Guilds.GetGuildByID(ctx, guildID)
+	if err != nil {
+		http.Error(w, "Could not find guild.", http.StatusNotFound)
+		return
+	}
+
+	// success
+	resp := map[string]interface{}{"guild": guild}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
+}
+
+func (api *API) DeleteGuild(w http.ResponseWriter, r *http.Request) {
+	// grab THAT id
+	guildIDStr := chi.URLParam(r, "id")
+	guildID, err := uuid.Parse(guildIDStr)
+	if err != nil {
+		http.Error(w, "Invalid guild ID", http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	userID := ctx.Value(middleware.UserIDKey).(uuid.UUID)
+
+	guild, err := api.Store.Guilds.GetGuildByID(ctx, guildID)
+	if err != nil {
+		http.Error(w, "Guild not found", http.StatusNotFound)
+		return
+	}
+
+	if guild.OwnerID != userID {
+		http.Error(w, "You do not have permission to delete this guild", http.StatusForbidden)
+		return
+	}
+
+	if err := api.Store.Guilds.DeleteGuild(ctx, guildID); err != nil {
+		http.Error(w, "Failed to delete guild", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func (api *API) GetUserGuilds(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	userID, ok := ctx.Value(middleware.UserIDKey).(uuid.UUID)
+	if !ok {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	guilds, err := api.Store.Guilds.GetGuildsForUserID(ctx, userID)
+	if err != nil {
+		http.Error(w, "Failed to fetch guilds", http.StatusInternalServerError)
+		return
+	}
+
+	resp := map[string]interface{}{
+		"guilds": guilds,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(resp)
 
 }
