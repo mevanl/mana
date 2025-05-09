@@ -17,6 +17,7 @@ type Store struct {
 	GuildRoles            *GuildRoleStore
 	GuildChannels         *GuildChannelStore
 	GuildChannelOverrides *GuildChannelOverrideStore
+	Messages              *MessageStore
 }
 
 func NewStore() (*Store, error) {
@@ -53,6 +54,7 @@ func NewStore() (*Store, error) {
 		GuildRoles:            NewGuildRoleStore(db),
 		GuildChannels:         NewGuildChannelStore(db),
 		GuildChannelOverrides: NewGuildChannelOverrideStore(db),
+		Messages:              NewMessageStore(db),
 	}
 
 	log.Println("Connected to PostgreSQL.")
@@ -106,7 +108,7 @@ func (store *Store) createTables() error {
 			CONSTRAINT guilds_invite_code_key UNIQUE (invite_code)
 		);
 	`
-	
+
 	createGuildMembersTableSQL := `
 		CREATE TABLE guild_members (
 			guild_id UUID NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
@@ -169,6 +171,17 @@ func (store *Store) createTables() error {
 		);
 	`
 
+	createMessagesTableSQL := `
+		CREATE TABLE messages (
+			id UUID PRIMARY KEY,
+			channel_id UUID REFERENCES guild_channels(id) ON DELETE CASCADE,
+			author_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			content TEXT NOT NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+		);
+
+	`
+
 	var err error
 
 	_, err = store.db.Exec(createUserTableSQL)
@@ -212,6 +225,12 @@ func (store *Store) createTables() error {
 		return err
 	}
 	log.Println("Guild channel permission overrides table ready.")
+
+	_, err = store.db.Exec(createMessagesTableSQL)
+	if err != nil {
+		return err
+	}
+	log.Println("Messages table ready.")
 
 	log.Println("All tables ready.")
 	return nil

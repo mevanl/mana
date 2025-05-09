@@ -20,8 +20,8 @@ func NewGuildStore(db *sql.DB) *GuildStore {
 
 func (guildStore *GuildStore) insertGuildOnce(ctx context.Context, guild *models.Guild) error {
 	insertGuildSQL := `
-		INSERT INTO guilds (id, name, owner_id, created_at)
-		VALUES ($1, $2, $3, $4)
+		INSERT INTO guilds (id, name, owner_id, invite_code, created_at)
+		VALUES ($1, $2, $3, $4, $5)
 	`
 
 	_, err := guildStore.DB.ExecContext(
@@ -65,7 +65,7 @@ func (guildStore *GuildStore) DeleteGuild(ctx context.Context, guildID uuid.UUID
 
 func (guildStore *GuildStore) GetGuildByID(ctx context.Context, guildID uuid.UUID) (*models.Guild, error) {
 	selectGuildSQL := `
-		SELECT id, name, owner_id, created_at
+		SELECT id, name, owner_id, invite_code, created_at
 		FROM guilds
 		WHERE id = $1
 	`
@@ -77,6 +77,7 @@ func (guildStore *GuildStore) GetGuildByID(ctx context.Context, guildID uuid.UUI
 		&guild.ID,
 		&guild.Name,
 		&guild.OwnerID,
+		&guild.InviteCode,
 		&guild.CreatedAt,
 	)
 
@@ -87,7 +88,32 @@ func (guildStore *GuildStore) GetGuildByID(ctx context.Context, guildID uuid.UUI
 	return &guild, err
 }
 
-func (guildStore *GuildStore) AddUserToGuild(ctx context.Context, guildMember models.GuildMember) error {
+func (guildStore *GuildStore) GetGuildByInviteCode(ctx context.Context, inviteCode string) (*models.Guild, error) {
+	selectGuildSQL := `
+		SELECT id, name, owner_id, invite_code, created_at
+		FROM guilds
+		WHERE invite_code = $1
+	`
+
+	guildRow := guildStore.DB.QueryRowContext(ctx, selectGuildSQL, inviteCode)
+
+	var guild models.Guild
+	err := guildRow.Scan(
+		&guild.ID,
+		&guild.Name,
+		&guild.OwnerID,
+		&guild.InviteCode,
+		&guild.CreatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return &guild, err
+}
+
+func (guildStore *GuildStore) AddUserToGuild(ctx context.Context, guildMember *models.GuildMember) error {
 	insertUserIntoGuildSQL := `
 		INSERT INTO guild_members (guild_id, user_id, joined_at)
 		VALUES ($1, $2, $3)
@@ -146,7 +172,7 @@ func (guildStore *GuildStore) GetGuildMembers(ctx context.Context, guildID uuid.
 
 func (guildStore *GuildStore) GetGuildsForUserID(ctx context.Context, userID uuid.UUID) ([]*models.Guild, error) {
 	getUserGuildsSQL := `
-		SELECT g.id, g.name, g.owner_id, g.created_at
+		SELECT g.id, g.name, g.owner_id, g.invite_code g.created_at
 		FROM guilds g
 		JOIN guild_members gm ON g.id = gm.guild_id
 		WHERE gm.user_id = $1
@@ -166,6 +192,7 @@ func (guildStore *GuildStore) GetGuildsForUserID(ctx context.Context, userID uui
 			&guild.ID,
 			&guild.Name,
 			&guild.OwnerID,
+			&guild.InviteCode,
 			&guild.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -174,6 +201,11 @@ func (guildStore *GuildStore) GetGuildsForUserID(ctx context.Context, userID uui
 	}
 
 	return guilds, rows.Err()
+}
+
+func (guildStore *GuildStore) CheckUserMemberOfGuild(ctx context.Context, guildID uuid.UUID, userID uuid.UUID) (bool, error) {
+
+	return false, nil
 }
 
 func isUniqueViolation(err error, constraintName string) bool {
