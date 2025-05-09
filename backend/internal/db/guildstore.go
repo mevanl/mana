@@ -3,9 +3,11 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"mana/internal/models"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgconn"
 )
 
 type GuildStore struct {
@@ -16,7 +18,7 @@ func NewGuildStore(db *sql.DB) *GuildStore {
 	return &GuildStore{DB: db}
 }
 
-func (guildStore *GuildStore) InsertGuild(ctx context.Context, guild *models.Guild) error {
+func (guildStore *GuildStore) insertGuildOnce(ctx context.Context, guild *models.Guild) error {
 	insertGuildSQL := `
 		INSERT INTO guilds (id, name, owner_id, created_at)
 		VALUES ($1, $2, $3, $4)
@@ -28,10 +30,27 @@ func (guildStore *GuildStore) InsertGuild(ctx context.Context, guild *models.Gui
 		guild.ID,
 		guild.Name,
 		guild.OwnerID,
+		guild.InviteCode,
 		guild.CreatedAt,
 	)
 
 	return err
+}
+
+func (guildStore *GuildStore) InsertGuild(ctx context.Context, guild *models.Guild) error {
+
+	for i := 0; i < 3; i++ {
+		err := guildStore.insertGuildOnce(ctx, guild)
+
+		if isUniqueViolation(err, "guilds_invite_code_key") {
+			guild.InviteCode = models.GenerateInviteCode()
+			continue
+		}
+
+		return err
+	}
+
+	return errors.New("failed to insert guild after 3 attempts due to invite code uniqueness")
 }
 
 func (guildStore *GuildStore) DeleteGuild(ctx context.Context, guildID uuid.UUID) error {
@@ -155,4 +174,12 @@ func (guildStore *GuildStore) GetGuildsForUserID(ctx context.Context, userID uui
 	}
 
 	return guilds, rows.Err()
+}
+
+func isUniqueViolation(err error, constraintName string) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "23505" && pgErr.ConstraintName == constraintName
+	}
+	return false
 }

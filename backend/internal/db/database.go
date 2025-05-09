@@ -101,9 +101,12 @@ func (store *Store) createTables() error {
 			id UUID PRIMARY KEY,
 			name TEXT NOT NULL,
 			owner_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-			created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+			invite_code TEXT NOT NULL,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+			CONSTRAINT guilds_invite_code_key UNIQUE (invite_code)
 		);
 	`
+	
 	createGuildMembersTableSQL := `
 		CREATE TABLE guild_members (
 			guild_id UUID NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,

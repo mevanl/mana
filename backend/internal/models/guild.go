@@ -1,6 +1,7 @@
 package models
 
 import (
+	"math/rand"
 	"time"
 
 	"github.com/google/uuid"
@@ -17,10 +18,11 @@ const (
 )
 
 type Guild struct {
-	ID        uuid.UUID `json:"id"`
-	Name      string    `json:"name"`
-	OwnerID   uuid.UUID `json:"owner_id"`
-	CreatedAt time.Time `json:"created_at"`
+	ID         uuid.UUID `json:"id"`
+	Name       string    `json:"name"`
+	OwnerID    uuid.UUID `json:"owner_id"`
+	InviteCode string    `json:"invite_code"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 type GuildMember struct {
@@ -67,6 +69,7 @@ type GuildChannelPermissionOverride struct {
 
 type GuildCreateResult struct {
 	Guild          *Guild
+	InviteCode     string
 	EveryoneRole   *GuildRole
 	OwnerRole      *GuildRole
 	OwnerMember    *GuildMember
@@ -76,10 +79,11 @@ type GuildCreateResult struct {
 
 func NewGuild(name string, ownerID uuid.UUID) *Guild {
 	return &Guild{
-		ID:        uuid.New(),
-		Name:      name,
-		OwnerID:   ownerID,
-		CreatedAt: time.Now().UTC(),
+		ID:         uuid.New(),
+		Name:       name,
+		OwnerID:    ownerID,
+		InviteCode: GenerateInviteCode(),
+		CreatedAt:  time.Now().UTC(),
 	}
 }
 
@@ -147,10 +151,24 @@ func CreateGuild(name string, ownerID uuid.UUID) *GuildCreateResult {
 
 	return &GuildCreateResult{
 		Guild:          guild,
+		InviteCode:     guild.InviteCode,
 		EveryoneRole:   everyoneRole,
 		OwnerRole:      ownerRole,
 		OwnerMember:    member,
 		OwnerBinding:   memberRole,
 		GeneralChannel: generalChannel,
 	}
+}
+
+func GenerateInviteCode() string {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	codeBytes := make([]byte, 8)
+
+	for i := range codeBytes {
+		codeBytes[i] = charset[r.Intn(len(charset))]
+	}
+
+	return string(codeBytes)
 }
