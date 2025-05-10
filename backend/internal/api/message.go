@@ -51,6 +51,6 @@ func (api *API) CreateMessage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(msg)
 }
 
-//func (api *API) DeleteMessage(w http.ResponseWriter, r *http.Request) {}
+// func (api *API) DeleteMessage(w http.ResponseWriter, r *http.Request) {}
 
 //func (api *API) EditMessage(w http.ResponseWriter, r *http.Request) {}

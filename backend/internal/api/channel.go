@@ -11,6 +11,8 @@ import (
 
 func (api *API) GetChannelMessages(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+
+	// Get channel 
 	channelIDParam := chi.URLParam(r, "id")
 	channelID, err := uuid.Parse(channelIDParam)
 	if err != nil {
@@ -18,6 +20,7 @@ func (api *API) GetChannelMessages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get limit from query string 
 	limit := 50
 	if l := r.URL.Query().Get("limit"); l != "" {
 		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 && parsed <= 100 {
@@ -25,12 +28,14 @@ func (api *API) GetChannelMessages(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// grab the messages from our guild 
 	messages, err := api.Store.Messages.GetMessagesByChannel(ctx, channelID, limit)
 	if err != nil {
 		http.Error(w, "Failed to fetch messages", http.StatusInternalServerError)
 		return
 	}
 
+	// send the messages 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(messages)
 }
