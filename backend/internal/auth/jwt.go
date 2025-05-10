@@ -2,7 +2,9 @@ package auth
 
 import (
 	"errors"
+	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -57,4 +59,29 @@ func ValidateToken(tokenString string) (string, error) {
 	}
 
 	return claims["id"].(string), nil
+}
+
+// this is for sockets
+func GetUserIDFromRequest(r *http.Request) (uuid.UUID, error) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		return uuid.Nil, errors.New("missing auth header")
+	}
+
+	parts := strings.SplitN(authHeader, " ", 2)
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return uuid.Nil, errors.New("invalid auth format")
+	}
+
+	userIDStr, err := ValidateToken(parts[1])
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	userID, err := uuid.Parse(userIDStr)
+	if err != nil {
+		return uuid.Nil, errors.New("invalid user id in token")
+	}
+
+	return userID, nil
 }
