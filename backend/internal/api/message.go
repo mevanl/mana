@@ -6,6 +6,7 @@ import (
 	"mana/internal/models"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
@@ -55,7 +56,7 @@ func (api *API) CreateMessage(w http.ResponseWriter, r *http.Request) {
 func (api *API) GetMessagesByChannel(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	// Get channel
+	// Get our channel id
 	channelIDParam := chi.URLParam(r, "id")
 	channelID, err := uuid.Parse(channelIDParam)
 	if err != nil {
@@ -63,7 +64,7 @@ func (api *API) GetMessagesByChannel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get limit from query string
+	// how many messages to grab
 	limit := 50
 	if l := r.URL.Query().Get("limit"); l != "" {
 		if parsed, err := strconv.Atoi(l); err == nil && parsed > 0 && parsed <= 100 {
@@ -71,14 +72,25 @@ func (api *API) GetMessagesByChannel(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// grab the messages from our guild
-	messages, err := api.Store.Messages.GetMessagesByChannel(ctx, channelID, limit)
+	// get before (for scrollup pagination)
+	var before *time.Time
+	if b := r.URL.Query().Get("before"); b != "" {
+		t, err := time.Parse(time.RFC3339, b)
+		if err != nil {
+			http.Error(w, "Invalid before timestamp", http.StatusBadRequest)
+			return
+		}
+		before = &t
+	}
+
+	// get our messages
+	messages, err := api.Store.Messages.GetMessagesByChannel(ctx, channelID, limit, before)
 	if err != nil {
 		http.Error(w, "Failed to fetch messages", http.StatusInternalServerError)
 		return
 	}
 
-	// send the messages
+	// send em to user
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(messages)
 }
