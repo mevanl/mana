@@ -26,7 +26,7 @@ func NewRouter(store *db.Store) http.Handler {
 	router.Post("/api/v1/register", api.Register)
 	router.Post("/api/v1/login", api.Login)
 
-	// Authenicated routes
+	// authenticated routes
 	router.Route("/api/v1", func(r chi.Router) {
 		// Guild
 		r.Get("/guild/{id}", api.GetGuildByID)
