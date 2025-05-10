@@ -39,7 +39,7 @@ func NewRouter(store *db.Store) http.Handler {
 		r.Get("/guilds/{id}/channels", api.GetGuildChannels)
 
 		// Messages
-		r.Get("/channel/{id}/messages", api.GetChannelMessages)
+		r.Get("/channel/{id}/messages", api.GetMessagesByChannel)
 		r.Post("/channel/{id}/messages", api.CreateMessage)
 	})
 
