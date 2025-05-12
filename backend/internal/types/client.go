@@ -1,12 +1,19 @@
-// defines share client types for websocket and event
 package types
 
-import "github.com/google/uuid"
+import (
+	"context"
+
+	"github.com/google/uuid"
+)
 
 type Client struct {
+	Ctx       context.Context
 	Hub       HubInterface
 	Send      chan []byte
 	UserID    uuid.UUID
 	ChannelID uuid.UUID
 }
 
+type MessagePayload struct {
+	Content string `json:"content"`
+}

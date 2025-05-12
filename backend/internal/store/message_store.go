@@ -1,4 +1,4 @@
-package db
+package store
 
 import (
 	"context"
@@ -10,31 +10,36 @@ import (
 	"github.com/google/uuid"
 )
 
-type MessageStore struct {
-	DB *sql.DB
+type MessageStore interface {
+	Create(ctx context.Context, message *models.Message) error
+	GetChannelMessages(ctx context.Context, channelID uuid.UUID, limit int, before *time.Time) ([]*models.Message, error)
 }
 
-func NewMessageStore(db *sql.DB) *MessageStore {
-	return &MessageStore{DB: db}
+type sqlMessageStore struct {
+	db *sql.DB
 }
 
-func (messageStore *MessageStore) InsertMessage(ctx context.Context, message *models.Message) error {
+func NewMessageStore(db *sql.DB) MessageStore {
+	return &sqlMessageStore{db: db}
+}
+
+func (messageStore *sqlMessageStore) Create(ctx context.Context, message *models.Message) error {
 	insertMessageSQL := `
-		INSERT INTO messages (id, channel_id, author_id, content, created_at)
-		VALUES ($1, $2, $3, $4, $5)
-	`
-	_, err := messageStore.DB.ExecContext(ctx, insertMessageSQL,
+	INSERT INTO messages (id, channel_id, author_id, content, created_at)
+	VALUES ($1, $2, $3, $4, $5)
+`
+	_, err := messageStore.db.ExecContext(ctx, insertMessageSQL,
 		message.ID, message.ChannelID, message.AuthorID, message.Content, message.CreatedAt,
 	)
 	return err
 }
 
-func (messageStore *MessageStore) GetMessagesByChannel(ctx context.Context, channelID uuid.UUID, limit int, before *time.Time) ([]*models.Message, error) {
+func (messageStore *sqlMessageStore) GetChannelMessages(ctx context.Context, channelID uuid.UUID, limit int, before *time.Time) ([]*models.Message, error) {
 	selectMessagesFromChannelSQL := `
-		SELECT id, channel_id, author_id, content, created_at
-		FROM messages
-		WHERE channel_id = $1
-	`
+	SELECT id, channel_id, author_id, content, created_at
+	FROM messages
+	WHERE channel_id = $1
+`
 
 	// create slice of all our arguments
 	args := []interface{}{channelID}
@@ -52,7 +57,7 @@ func (messageStore *MessageStore) GetMessagesByChannel(ctx context.Context, chan
 	args = append(args, limit)
 
 	// execute
-	rows, err := messageStore.DB.QueryContext(ctx, selectMessagesFromChannelSQL, args...)
+	rows, err := messageStore.db.QueryContext(ctx, selectMessagesFromChannelSQL, args...)
 	if err != nil {
 		return nil, err
 	}

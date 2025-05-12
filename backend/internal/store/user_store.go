@@ -1,29 +1,37 @@
-package db
+package store
 
 import (
 	"context"
 	"database/sql"
-
 	"mana/internal/models"
 
 	"github.com/google/uuid"
 )
 
-type UserStore struct {
-	DB *sql.DB
+type UserStore interface {
+	Create(ctx context.Context, user *models.User) error
+	FindByID(ctx context.Context, id uuid.UUID) (*models.User, error)
+	FindByEmail(ctx context.Context, email string) (*models.User, error)
+	FindByUsername(ctx context.Context, username string) (*models.User, error)
+	CheckUserExistsByEmail(ctx context.Context, email string) (bool, error)
+	CheckUserExistsByUsername(ctx context.Context, username string) (bool, error)
 }
 
-func NewUserStore(db *sql.DB) *UserStore {
-	return &UserStore{DB: db}
+type sqlUserStore struct {
+	db *sql.DB
 }
 
-func (userStore *UserStore) InsertUser(ctx context.Context, user *models.User) error {
+func NewUserStore(db *sql.DB) UserStore {
+	return &sqlUserStore{db: db}
+}
+
+func (userStore *sqlUserStore) Create(ctx context.Context, user *models.User) error {
 	insertUserSQL := `
 		INSERT INTO users (id, username, email, password, activity_status, account_status, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 
-	_, err := userStore.DB.ExecContext(
+	_, err := userStore.db.ExecContext(
 		ctx,
 		insertUserSQL,
 		user.ID,
@@ -38,68 +46,14 @@ func (userStore *UserStore) InsertUser(ctx context.Context, user *models.User) e
 	return err
 }
 
-func (userStore *UserStore) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
-	selectUserSQL := `
-		SELECT id, username, email, password, activity_status, account_status, created_at
-		FROM users
-		WHERE email = $1
-	`
-
-	userRow := userStore.DB.QueryRowContext(ctx, selectUserSQL, email)
-
-	var user models.User
-	err := userRow.Scan(
-		&user.ID,
-		&user.Username,
-		&user.Email,
-		&user.Password,
-		&user.ActivityStatus,
-		&user.AccountStatus,
-		&user.CreatedAt,
-	)
-
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
-
-	return &user, err
-}
-
-func (userStore *UserStore) GetUserByUsername(ctx context.Context, username string) (*models.User, error) {
-	selectUserSQL := `
-		SELECT id, username, email, password, activity_status, account_status, created_at
-		FROM users
-		WHERE username = $1
-	`
-
-	userRow := userStore.DB.QueryRowContext(ctx, selectUserSQL, username)
-
-	var user models.User
-	err := userRow.Scan(
-		&user.ID,
-		&user.Username,
-		&user.Email,
-		&user.Password,
-		&user.ActivityStatus,
-		&user.AccountStatus,
-		&user.CreatedAt,
-	)
-
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
-
-	return &user, err
-}
-
-func (userStore *UserStore) GetUserByID(ctx context.Context, ID uuid.UUID) (*models.User, error) {
+func (userStore *sqlUserStore) FindByID(ctx context.Context, id uuid.UUID) (*models.User, error) {
 	selectUserSQL := `
 		SELECT id, username, email, password, activity_status, account_status, created_at
 		FROM users
 		WHERE id = $1
 	`
 
-	userRow := userStore.DB.QueryRowContext(ctx, selectUserSQL, ID)
+	userRow := userStore.db.QueryRowContext(ctx, selectUserSQL, id)
 
 	var user models.User
 	err := userRow.Scan(
@@ -119,10 +73,64 @@ func (userStore *UserStore) GetUserByID(ctx context.Context, ID uuid.UUID) (*mod
 	return &user, err
 }
 
-func (userStore *UserStore) CheckUserExistsByEmail(ctx context.Context, email string) (bool, error) {
+func (userStore *sqlUserStore) FindByEmail(ctx context.Context, email string) (*models.User, error) {
+	selectUserSQL := `
+		SELECT id, username, email, password, activity_status, account_status, created_at
+		FROM users
+		WHERE email = $1
+	`
+
+	userRow := userStore.db.QueryRowContext(ctx, selectUserSQL, email)
+
+	var user models.User
+	err := userRow.Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.Password,
+		&user.ActivityStatus,
+		&user.AccountStatus,
+		&user.CreatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return &user, err
+}
+
+func (userStore *sqlUserStore) FindByUsername(ctx context.Context, username string) (*models.User, error) {
+	selectUserSQL := `
+		SELECT id, username, email, password, activity_status, account_status, created_at
+		FROM users
+		WHERE username = $1
+	`
+
+	userRow := userStore.db.QueryRowContext(ctx, selectUserSQL, username)
+
+	var user models.User
+	err := userRow.Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.Password,
+		&user.ActivityStatus,
+		&user.AccountStatus,
+		&user.CreatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return &user, err
+}
+
+func (userStore *sqlUserStore) CheckUserExistsByEmail(ctx context.Context, email string) (bool, error) {
 	selectUserEmailSQL := `SELECT EXISTS (SELECT 1 FROM users WHERE email = $1)`
 
-	row := userStore.DB.QueryRowContext(ctx, selectUserEmailSQL, email)
+	row := userStore.db.QueryRowContext(ctx, selectUserEmailSQL, email)
 
 	var exists bool
 	err := row.Scan(&exists)
@@ -130,10 +138,10 @@ func (userStore *UserStore) CheckUserExistsByEmail(ctx context.Context, email st
 	return exists, err
 }
 
-func (userStore *UserStore) CheckUserExistsByUsername(ctx context.Context, username string) (bool, error) {
+func (userStore *sqlUserStore) CheckUserExistsByUsername(ctx context.Context, username string) (bool, error) {
 	selectUserUsernameSQL := `SELECT EXISTS (SELECT 1 FROM users WHERE username = $1)`
 
-	row := userStore.DB.QueryRowContext(ctx, selectUserUsernameSQL, username)
+	row := userStore.db.QueryRowContext(ctx, selectUserUsernameSQL, username)
 
 	var exists bool
 	err := row.Scan(&exists)
@@ -141,16 +149,16 @@ func (userStore *UserStore) CheckUserExistsByUsername(ctx context.Context, usern
 	return exists, err
 }
 
-func (userStore *UserStore) UpdateActivityStatus(ctx context.Context, id uuid.UUID, status string) error {
+func (userStore *sqlUserStore) UpdateActivityStatus(ctx context.Context, id uuid.UUID, status string) error {
 	updateActivityStatusSQL := `UPDATE users SET activity_status = $1 WHERE id = $2`
 
-	_, err := userStore.DB.ExecContext(ctx, updateActivityStatusSQL, status, id)
+	_, err := userStore.db.ExecContext(ctx, updateActivityStatusSQL, status, id)
 	return err
 }
 
-func (userStore *UserStore) UpdateAccountStatus(ctx context.Context, id uuid.UUID, status string) error {
+func (userStore *sqlUserStore) UpdateAccountStatus(ctx context.Context, id uuid.UUID, status string) error {
 	updateAccountStatusSQL := `UPDATE users SET account_status = $1 WHERE id = $2`
 
-	_, err := userStore.DB.ExecContext(ctx, updateAccountStatusSQL, status, id)
+	_, err := userStore.db.ExecContext(ctx, updateAccountStatusSQL, status, id)
 	return err
 }

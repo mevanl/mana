@@ -13,14 +13,14 @@ import (
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		// we are allowing all origins for now
+		// will need implentation, keep open for dev testing for now
 		return true
 	},
 }
 
 func ServeWebsocket(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
-	// extra channel ID from query
+	// get the channel id user is in
 	channelIDStr := chi.URLParam(r, "channel_id")
 	channelID, err := uuid.Parse(channelIDStr)
 	if err != nil {
@@ -28,15 +28,15 @@ func ServeWebsocket(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// get user id
+	// authenticate user
 	userID, err := auth.GetUserIDFromRequest(r)
 	if err != nil {
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 
-	// upgrade connection
-	connection, err := upgrader.Upgrade(w, r, nil)
+	// upgrade the socket
+	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Printf("WebSocket upgrade failed: %v", err)
 		return
@@ -44,24 +44,27 @@ func ServeWebsocket(hub *Hub, w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("WebSocket connected: user=%s channel=%s\n", userID, channelID)
 
+	// create our client
 	client := &ClientImpl{
 		Client: types.Client{
+			Ctx:       r.Context(),
 			Hub:       hub,
 			Send:      make(chan []byte, 256),
 			UserID:    userID,
 			ChannelID: channelID,
 		},
-		Connection: connection,
+		Connection: conn,
 	}
 
-	connection.SetCloseHandler(func(code int, text string) error {
-		hub.Unregister <- &client.Client
+	conn.SetCloseHandler(func(code int, text string) error {
+		hub.unregister <- &client.Client
 		return nil
 	})
 
-	hub.Register <- &client.Client
+	// register them
+	hub.register <- &client.Client
 
-	// Start pumps
+	// start goroutines
 	go client.writePump()
 	go client.readPump()
 }

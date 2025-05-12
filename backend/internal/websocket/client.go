@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"mana/internal/types"
-	"mana/internal/websocket/events"
+	"mana/internal/websocket/router"
 
 	"github.com/gorilla/websocket"
 )
@@ -18,38 +18,31 @@ const (
 	maxMessageSize = 512
 )
 
+// ClientImpl handles the WebSocket connection and communication.
 type ClientImpl struct {
 	Client     types.Client
 	Connection *websocket.Conn
 }
 
-// pump messages incoming from socket to the hub (inbound messages)
-func (client *ClientImpl) readPump() {
-
-	// Deinit hub and close connect on end
+// readPump listens for incoming WebSocket messages and dispatches them to the router.
+func (c *ClientImpl) readPump() {
 	defer func() {
-		client.Client.Hub.UnregisterClient(&client.Client)
-		client.Connection.Close()
+		c.Client.Hub.UnregisterClient(&c.Client)
+		c.Connection.Close()
 	}()
 
-	// Setup connection
-	client.Connection.SetReadLimit(maxMessageSize)
-	client.Connection.SetReadDeadline(time.Now().Add(pongWait))
-	client.Connection.SetPongHandler(func(appdata string) error {
-		client.Connection.SetReadDeadline(time.Now().Add(pongWait))
+	c.Connection.SetReadLimit(maxMessageSize)
+	c.Connection.SetReadDeadline(time.Now().Add(pongWait))
+	c.Connection.SetPongHandler(func(string) error {
+		c.Connection.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
 
 	for {
-
-		// read inbound messages
-		_, message, err := client.Connection.ReadMessage()
-
-		// unrecoverable error
+		_, message, err := c.Connection.ReadMessage()
 		if err != nil {
-			// if error closes connection, log error
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("WebSocket error: %v", err)
+				log.Printf("websocket: unexpected close: %v", err)
 			}
 			break
 		}
@@ -59,52 +52,52 @@ func (client *ClientImpl) readPump() {
 			continue
 		}
 
-		go events.HandleEvent(&client.Client, message)
+		go router.HandleEvent(&c.Client, message)
 	}
 }
 
-// pump message from our socket to hub (outbound message)
-func (client *ClientImpl) writePump() {
+// writePump sends messages from the client.Send channel to the WebSocket connection.
+func (c *ClientImpl) writePump() {
 	ticker := time.NewTicker(pingPeriod)
-
-	// deinit ticker and connection
 	defer func() {
 		ticker.Stop()
-		client.Connection.Close()
+		c.Connection.Close()
 	}()
 
 	for {
 		select {
-		case message, ok := <-client.Client.Send:
-			client.Connection.SetWriteDeadline(time.Now().Add(writeWait))
+		case message, ok := <-c.Client.Send:
+			c.Connection.SetWriteDeadline(time.Now().Add(writeWait))
 			if !ok {
-				// hub closed channel
-				client.Connection.WriteMessage(websocket.CloseMessage, []byte{})
+				// Hub closed the channel
+				_ = c.Connection.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			writer, err := client.Connection.NextWriter(websocket.TextMessage)
+			writer, err := c.Connection.NextWriter(websocket.TextMessage)
 			if err != nil {
+				log.Printf("websocket: writer error: %v", err)
 				return
 			}
 
-			writer.Write(message)
+			_, _ = writer.Write(message)
 
-			// drain queued messages (avoid blocks)
-			n := len(client.Client.Send)
+			// Drain queued messages (non-blocking)
+			n := len(c.Client.Send)
 			for i := 0; i < n; i++ {
 				_, _ = writer.Write([]byte("\n"))
-				_, _ = writer.Write(<-client.Client.Send)
+				_, _ = writer.Write(<-c.Client.Send)
 			}
 
-			// if our writer closed on err
 			if err := writer.Close(); err != nil {
+				log.Printf("websocket: writer close error: %v", err)
 				return
 			}
 
 		case <-ticker.C:
-			client.Connection.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := client.Connection.WriteMessage(websocket.PingMessage, nil); err != nil {
+			c.Connection.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.Connection.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Printf("websocket: ping error: %v", err)
 				return
 			}
 		}

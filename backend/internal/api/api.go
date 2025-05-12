@@ -1,7 +1,9 @@
 package api
 
-import "mana/internal/db"
+import (
+	"mana/internal/store"
+)
 
 type API struct {
-	Store *db.Store
+	Store *store.Store
 }

@@ -74,7 +74,7 @@ func (api *API) Register(w http.ResponseWriter, r *http.Request) {
 	// Make user and insert into db
 	user := models.NewUser(req.Username, req.Email, hashedPassword)
 
-	err = api.Store.Users.InsertUser(ctx, user)
+	err = api.Store.Users.Create(ctx, user)
 	if err != nil {
 		http.Error(w, "Failed to create user", http.StatusInternalServerError)
 		return

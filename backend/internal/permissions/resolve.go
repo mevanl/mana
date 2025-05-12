@@ -3,6 +3,7 @@ package permissions
 import (
 	"context"
 	"mana/internal/models"
+	"mana/internal/types"
 
 	"github.com/google/uuid"
 )
@@ -24,7 +25,7 @@ func ResolveBasePermissions(ctx context.Context, permissionStore PermissionStore
 	}
 
 	// Admin override
-	if HasPermission(userPermissions, PermissionAdministrator) {
+	if types.HasPermission(userPermissions, types.PermissionAdministrator) {
 		return ^uint64(0), nil
 	}
 
@@ -45,7 +46,7 @@ func ResolveChannelPermissions(ctx context.Context, permissionStore PermissionSt
 	}
 
 	// if admin, then can do whatever they want, ignore overrides
-	if HasPermission(basePermissions, PermissionAdministrator) {
+	if types.HasPermission(basePermissions, types.PermissionAdministrator) {
 		return ^uint64(0), nil
 	}
 

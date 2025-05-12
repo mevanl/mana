@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"mana/internal/services"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -18,9 +19,9 @@ func (api *API) GetGuildChannels(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	channels, err := api.Store.GuildChannels.GetChannelsForGuild(ctx, guildID)
+	channels, err := services.GetChannels(ctx, api.Store, guildID)
 	if err != nil {
-		http.Error(w, "Failed to fetch channels", http.StatusInternalServerError)
+		RespondChannelError(w, err)
 		return
 	}
 

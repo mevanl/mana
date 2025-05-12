@@ -1,7 +1,6 @@
-package permissions
+package types
 
 const (
-
 	// General Server Permissions
 	PermissionViewChannels   uint64 = 1 << 0
 	PermissionManageChannels uint64 = 1 << 1
@@ -49,6 +48,6 @@ func AddPermission(current uint64, add uint64) uint64 {
 	return current | add
 }
 
-func RemovePermission(current, remove uint64) uint64 {
+func RemovePermission(current uint64, remove uint64) uint64 {
 	return current &^ remove
 }

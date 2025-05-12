@@ -4,6 +4,7 @@ import (
 	"log"
 	"mana/internal/api"
 	"mana/internal/db"
+	"mana/internal/store"
 	"net/http"
 	"os"
 
@@ -17,8 +18,14 @@ func main() {
 		log.Fatal("ERROR: Failed loading .env file.")
 	}
 
+	// Connect to the db
+	db, err := db.ConnectDB()
+	if err != nil {
+		log.Fatalf("ERROR: Failed to connect to DB: %v", err)
+	}
+
 	// start store
-	store, err := db.NewStore()
+	store := store.New(db)
 	if err != nil {
 		log.Fatalf("ERROR: Failed to create Store: %v", err)
 	}

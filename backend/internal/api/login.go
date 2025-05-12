@@ -52,7 +52,7 @@ func (api *API) Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		user, err = api.Store.Users.GetUserByUsername(ctx, req.Username)
+		user, err = api.Store.Users.FindByUsername(ctx, req.Username)
 		if err != nil {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return
@@ -68,7 +68,7 @@ func (api *API) Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		user, err = api.Store.Users.GetUserByEmail(ctx, req.Email)
+		user, err = api.Store.Users.FindByEmail(ctx, req.Email)
 		if err != nil {
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 			return

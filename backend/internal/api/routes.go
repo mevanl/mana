@@ -1,15 +1,15 @@
 package api
 
 import (
-	"mana/internal/db"
 	"mana/internal/middleware"
+	"mana/internal/store"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func NewRouter(store *db.Store) http.Handler {
+func NewRouter(store *store.Store) http.Handler {
 	router := chi.NewRouter()
 	api := &API{Store: store}
 
